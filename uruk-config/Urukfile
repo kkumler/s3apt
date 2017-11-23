@@ -1,0 +1,4 @@
+all:
+  product: honeycomb
+
+dev2: {}

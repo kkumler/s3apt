@@ -1,0 +1,133 @@
+#!/usr/bin/env ruby
+
+CloudFormation {
+  Description 'Isengard S3 apt repository'
+
+  UrukList('AllowedAccounts', 'AWS accounts with permission to download from the repo.', :default => '')
+  UrukString('RepoBucket', 'S3 bucket where the repository is stored')
+  UrukString('RepoPrefix', 'S3 prefix where the repository is stored')
+  UrukString('RepoCachePrefix', 'S3 prefix where the control data cache is stored', :default => 'control-data-cache')
+  UrukString('CodeBucket', 'S3 bucket where Lambda zip is stored')
+  UrukString('CodeKey', 'S3 key of the Lambda zip', :default => '')
+  UrukString('Handler', 'Lambda function', :default => 's3apt.lambda_handler')
+  UrukString('Name', 'Lambda name', :default => 'isengard')
+  UrukNumber('MemorySize', 'Lambda memory', :default => 128)
+  UrukNumber('Timeout', 'Lambda timeout', :default => 30)
+
+  UrukStandardParameters()
+
+  Condition('Accounts', FnEquals(FnJoin('', Ref(:AllowedAccounts)), ''))
+  Condition('Key', FnEquals(Ref(:CodeKey), ''))
+
+  UrukIAMRole('IAMRole',
+    :statement => [
+      {
+        'Effect' => 'Allow',
+        'Principal' => { 'Service' => ['lambda.amazonaws.com'] },
+        'Action' => ['sts:AssumeRole']
+      }
+    ],
+    :policies => [
+      {
+        :name => FnJoin('-', [Ref(:RepoBucket), 'bucket-access']),
+        :statement => [
+          {
+            'Action' => 's3:ListBucket',
+            'Resource' => FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket)]),
+            'Effect' => 'Allow'
+          },
+          {
+            'Action' => [
+              's3:GetObject',
+              's3:PutObject'
+            ],
+            'Resource' => [
+              FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket), '/', Ref(:RepoPrefix), '/*']),
+              FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket), '/', Ref(:RepoCachePrefix), '/*'])
+            ],
+            'Effect' => 'Allow'
+          },
+          {
+            'Action' => 'logs:*',
+            'Resource' => FnJoin('', ['arn:aws:logs:*:*:log-group:/aws/lambda/', Ref(:Name), ':*']),
+            'Effect' => 'Allow'
+          }
+        ]
+      }
+    ]
+  )
+
+  Resource('BucketPolicy') {
+    Type 'AWS::S3::BucketPolicy'
+    Property('Bucket', Ref(:RepoBucket))
+    Property('PolicyDocument', {
+      'Statement' => [
+        {
+          'Principal' => {
+            'AWS' => FnGetAtt(:IAMRole, :Arn)
+          },
+          'Action' => 's3:ListBucket',
+          'Resource' => FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket)]),
+          'Effect' => 'Allow'
+        },
+        {
+          'Principal' => {
+            'AWS' => FnGetAtt(:IAMRole, :Arn)
+          },
+          'Action' => [
+            's3:GetObject',
+            's3:PutObject'
+          ],
+          'Resource' => [
+            FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket), '/', Ref(:RepoPrefix), '/*']),
+            FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket), '/', Ref(:RepoCachePrefix), '/*'])
+          ],
+          'Effect' => 'Allow'
+        },
+        {
+          'Principal' => {
+            'AWS' => FnIf(:Accounts, Ref('AWS::AccountId'), Ref(:AllowedAccounts))
+          },
+          'Action' => 's3:GetObject',
+          'Resource' => FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket), '/', Ref(:RepoPrefix), '/*']),
+          'Effect' => 'Allow'
+        }
+      ]
+    })
+  }
+
+  Resource('LambdaFunction') {
+    Type 'AWS::Lambda::Function'
+    Property('Code', {
+      'S3Bucket' => Ref(:CodeBucket),
+      'S3Key' => FnIf(:Key, FnJoin('', [Ref(:Name), '-', Ref(:AppVersion), '.zip']), Ref(:CodeKey))
+    })
+    Property('Environment', {
+      'Variables' => {
+        'APT_REPO_BUCKET_NAME' => Ref(:RepoBucket),
+        'CONTROL_DATA_CACHE_PREFIX' => Ref(:RepoCachePrefix),
+      }
+    })
+    Property('Handler', Ref(:Handler))
+    Property('MemorySize', Ref(:MemorySize))
+    Property('FunctionName', Ref(:Name))
+    Property('Role', FnGetAtt(:IAMRole, :Arn))
+    Property('Runtime', 'python2.7')
+    Property('Timeout', Ref(:Timeout))
+  }
+
+  Resource('LambdaVersion') {
+    Type 'AWS::Lambda::Version'
+    Property('Description', FnJoin(' ', ['Version', Ref(:AppVersion), 'of', 'https://github.com/ConnectedHomes/isengard.git']))
+    Property('FunctionName', Ref(:LambdaFunction))
+  }
+
+  Resource('InvocationPermission') {
+    Type 'AWS::Lambda::Permission'
+    Property('Action', 'lambda:InvokeFunction')
+    Property('FunctionName', Ref(:LambdaFunction))
+    Property('Principal', 's3.amazonaws.com')
+    Property('SourceAccount', Ref('AWS::AccountId'))
+    Property('SourceArn', FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket)]))
+  }
+}

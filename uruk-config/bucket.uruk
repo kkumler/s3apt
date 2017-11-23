@@ -1,0 +1,5 @@
+all:
+  parameters:
+    RepoBucket: pt2-isengard
+    RepoPrefix: trusty
+    CodeBucket: pt2-isengard

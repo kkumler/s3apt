@@ -1,0 +1,17 @@
+all:
+  parameters:
+    AllowedAccounts: |-
+      arn:aws:iam::517518810891:root,
+      arn:aws:iam::767141600903:root,
+      arn:aws:iam::268480079356:root,
+      arn:aws:iam::760209700720:root,
+      arn:aws:iam::380130343090:root,
+      arn:aws:iam::448298206431:root,
+      arn:aws:iam::411261601887:root,
+      arn:aws:iam::439624137121:root,
+      arn:aws:iam::886358885274:root,
+      arn:aws:iam::058700374591:root,
+      arn:aws:iam::961902373251:root,
+      arn:aws:iam::084226081652:root,
+      arn:aws:iam::353255673532:root,
+      arn:aws:iam::904993924097:root
