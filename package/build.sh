@@ -7,13 +7,18 @@ if [ -z "$version" ]; then
   exit 1
 fi
 
-  set -e
+if [ -z "$PYENV_ROOT" ]; then
+  echo >&2 "https://github.com/pyenv/pyenv is required!"
+  exit 2
+fi
 
-ROOT=$(mktemp -d --tmpdir=$PWD)
+set -e
+
+venv=$(date +"%Y%m%d%H%M%S")
+ROOT="$PYENV_ROOT/versions/$venv"
 trap 'rm -rf "$ROOT"' ERR EXIT
-virtualenv "$ROOT"
-. "$ROOT/bin/activate"
-pip install -r requirements.txt
+pyenv virtualenv "$venv"
+PYENV_VERSION="$venv" pip install -r requirements.txt
 
 zip="isengard-$version.zip"
 scratch="$ROOT/$zip"
