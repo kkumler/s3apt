@@ -1,0 +1,13 @@
+dev6:
+  promote:
+    s3:
+      type: bucket_notification
+      bucket: <%= cloudformation('parameters', 'RepoBucket') %>
+      description: Update <%= cloudformation('parameters', 'RepoPrefix') %> Apt repo
+      events:
+        - 's3:ObjectCreated:*'
+        - 's3:ObjectRemoved:*'
+      filter:
+        prefix: <%= cloudformation('parameters', 'RepoPrefix') %>/
+        suffix: .deb
+      lambda: <%= resource('Fn', 'id') %>

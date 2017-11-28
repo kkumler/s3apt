@@ -12,6 +12,7 @@ CloudFormation {
   UrukString('CodeKey', 'S3 key of the Lambda zip', :default => '')
   UrukString('Handler', 'Lambda function', :default => 's3apt.lambda_handler')
   UrukString('Name', 'Lambda name', :default => 'isengard')
+  UrukString('Version', 'Lambda version', :default => '$LATEST')
   UrukNumber('MemorySize', 'Lambda memory', :default => 128)
   UrukNumber('Timeout', 'Lambda timeout', :default => 30)
 
@@ -109,7 +110,7 @@ CloudFormation {
     })
   }
 
-  Resource('LambdaFunction') {
+  Resource('Fn') {
     Type 'AWS::Lambda::Function'
     Property('Code', {
       'S3Bucket' => Ref(:CodeBucket),
@@ -123,22 +124,15 @@ CloudFormation {
     })
     Property('Handler', Ref(:Handler))
     Property('MemorySize', Ref(:MemorySize))
-    Property('FunctionName', Ref(:Name))
     Property('Role', FnGetAtt(:IAMRole, :Arn))
     Property('Runtime', 'python2.7')
     Property('Timeout', Ref(:Timeout))
   }
 
-  Resource('LambdaVersion') {
-    Type 'AWS::Lambda::Version'
-    Property('Description', FnJoin(' ', ['Version', Ref(:AppVersion), 'of', 'https://github.com/ConnectedHomes/isengard.git']))
-    Property('FunctionName', Ref(:LambdaFunction))
-  }
-
   Resource('InvocationPermission') {
     Type 'AWS::Lambda::Permission'
     Property('Action', 'lambda:InvokeFunction')
-    Property('FunctionName', Ref(:LambdaFunction))
+    Property('FunctionName', Ref(:Fn))
     Property('Principal', 's3.amazonaws.com')
     Property('SourceAccount', Ref('AWS::AccountId'))
     Property('SourceArn', FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket)]))
