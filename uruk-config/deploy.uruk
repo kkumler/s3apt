@@ -1,4 +1,4 @@
-dev6:
+all:
   promote:
     s3:
       type: bucket_notification
