@@ -3,7 +3,7 @@
 CloudFormation {
   Description 'Isengard S3 apt repository'
 
-  UrukList('AllowedAccounts', 'AWS accounts with permission to download from the repo.', :default => '')
+  UrukList('DownloadAccounts', 'AWS accounts with permission to download from the repo.', :default => '')
   UrukString('RepoBucket', 'S3 bucket where the repository is stored')
   UrukString('RepoPrefix', 'S3 prefix where the repository is stored')
   UrukString('RepoCachePrefix', 'S3 prefix where the control data cache is stored', :default => 'control-data-cache')
@@ -16,8 +16,8 @@ CloudFormation {
 
   UrukStandardParameters()
 
-  Condition('Accounts', FnEquals(FnJoin('', Ref(:AllowedAccounts)), ''))
-  Condition('Key', FnEquals(Ref(:CodeKey), ''))
+  Condition('WithDownloadAccounts', FnNot(FnEquals(FnJoin('', Ref(:DownloadAccounts)), '')))
+  Condition('WithKey', FnNot(FnEquals(Ref(:CodeKey), '')))
 
   UrukIAMRole('IAMRole',
     :statement => [
@@ -86,7 +86,7 @@ CloudFormation {
         },
         {
           'Principal' => {
-            'AWS' => FnIf(:Accounts, Ref('AWS::AccountId'), Ref(:AllowedAccounts))
+            'AWS' => FnIf(:WithDownloadAccounts, Ref(:DownloadAccounts), Ref('AWS::AccountId'))
           },
           'Action' => 's3:GetObject',
           'Resource' => FnJoin('', ['arn:aws:s3:::', Ref(:RepoBucket), '/', Ref(:RepoPrefix), '/*']),
@@ -100,7 +100,7 @@ CloudFormation {
     Type 'AWS::Lambda::Function'
     Property('Code', {
       'S3Bucket' => Ref(:CodeBucket),
-      'S3Key' => FnIf(:Key, FnJoin('', [Ref(:Name), '-', Ref(:AppVersion), '.zip']), Ref(:CodeKey))
+      'S3Key' => FnIf(:WithKey, Ref(:CodeKey), FnJoin('', [Ref(:Name), '-', Ref(:AppVersion), '.zip']))
     })
     Property('Environment', {
       'Variables' => {

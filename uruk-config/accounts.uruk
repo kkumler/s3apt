@@ -1,6 +1,6 @@
 all:
   parameters:
-    AllowedAccounts: |-
+    DownloadAccounts: |-
       arn:aws:iam::517518810891:root,
       arn:aws:iam::767141600903:root,
       arn:aws:iam::268480079356:root,
