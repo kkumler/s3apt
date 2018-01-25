@@ -14,7 +14,7 @@ CloudFormation {
   UrukString('Name', 'Lambda name', :default => 'isengard')
   UrukString('Version', 'Lambda version', :default => '$LATEST')
   UrukNumber('MemorySize', 'Lambda memory', :default => 128)
-  UrukNumber('Timeout', 'Lambda timeout', :default => 30)
+  UrukNumber('Timeout', 'Lambda timeout', :default => 300)
 
   UrukStandardParameters()
 
