@@ -110,24 +110,15 @@ CloudFormation {
     })
   }
 
-  Resource('Fn') {
-    Type 'AWS::Lambda::Function'
-    Property('Code', {
-      'S3Bucket' => Ref(:CodeBucket),
-      'S3Key' => FnIf(:WithKey, Ref(:CodeKey), FnJoin('', [Ref(:Name), '-', Ref(:AppVersion), '.zip']))
-    })
-    Property('Environment', {
-      'Variables' => {
-        'APT_REPO_BUCKET_NAME' => Ref(:RepoBucket),
-        'CONTROL_DATA_CACHE_PREFIX' => Ref(:RepoCachePrefix),
-      }
-    })
-    Property('Handler', Ref(:Handler))
-    Property('MemorySize', Ref(:MemorySize))
-    Property('Role', FnGetAtt(:IAMRole, :Arn))
-    Property('Runtime', 'python2.7')
-    Property('Timeout', Ref(:Timeout))
-  }
+  UrukLambdaFunction('Fn',
+    :bucket => Ref(:CodeBucket),
+    :key=> FnIf(:WithKey, Ref(:CodeKey), FnJoin('', [Ref(:Name), '-', Uruk::Parameters[:version], '.zip'])),
+    :environment =>  {
+      'APT_REPO_BUCKET_NAME' => Ref(:RepoBucket),
+      'CONTROL_DATA_CACHE_PREFIX' => Ref(:RepoCachePrefix),
+    },
+    :role => FnGetAtt(:IAMRole, :Arn)
+  )
 
   Resource('InvocationPermission') {
     Type 'AWS::Lambda::Permission'
