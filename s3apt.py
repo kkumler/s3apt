@@ -1,8 +1,6 @@
-from __future__ import print_function
-
 import config
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import boto3
 import botocore
 import tempfile
@@ -46,7 +44,7 @@ def get_control_data(debfile):
     # control file can be named different things
     control_file_name = [x for x in tar_file.getmembers() if x.name in ['control', './control']][0]
 
-    control_data = tar_file.extractfile(control_file_name).read().strip()
+    control_data = tar_file.extractfile(control_file_name).read().strip().decode('utf-8')
     # Strip out control fields with blank values.  This tries to allow folded
     # and multiline fields to pass through.  See the debian policy manual for
     # more info on folded and multiline fields.
@@ -130,7 +128,7 @@ def get_cached_control_data(deb_obj):
         control_data = read_control_data(deb_obj)
         cache_obj.put(Body=control_data)
 
-    return control_data
+    return control_data.decode('utf-8')
 
 def get_package_index_hash(prefix):
     """
@@ -155,7 +153,7 @@ def calc_package_index_hash(deb_names):
     we can use it for short-circuiting.
     """
     md5 = hashlib.md5()
-    md5.update("\n".join(sorted(deb_names)))
+    md5.update("\n".join(sorted(deb_names)).encode('utf-8'))
     return md5.hexdigest()
 
 def rebuild_package_index(prefix):
@@ -216,7 +214,7 @@ def lambda_handler(event, context):
 
     # Get the object from the event and show its content type
     bucket = event['Records'][0]['s3']['bucket']['name']
-    key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key']).decode('utf8')
+    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'])
 
 
     # If the Packages index changed or was deleted, try again to rebuild it to
@@ -238,7 +236,6 @@ def lambda_handler(event, context):
         rebuild_package_index(prefix)
 
     print("DONE")
-
 
 
 if __name__ == "__main__":

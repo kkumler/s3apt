@@ -14,7 +14,7 @@ CloudFormation {
   UrukString('Name', 'Lambda name', :default => 'isengard')
   UrukString('Version', 'Lambda version', :default => '$LATEST')
   UrukNumber('MemorySize', 'Lambda memory', :default => 128)
-  UrukNumber('Timeout', 'Lambda timeout', :default => 300)
+  UrukNumber('Timeout', 'Lambda timeout', :default => 600)
 
   UrukStandardParameters()
 
@@ -52,7 +52,7 @@ CloudFormation {
           },
           {
             'Action' => 'logs:*',
-            'Resource' => FnJoin('', ['arn:aws:logs:*:*:log-group:/aws/lambda/', Ref(:Name), ':*']),
+            'Resource' => '*',
             'Effect' => 'Allow'
           }
         ]
@@ -117,7 +117,8 @@ CloudFormation {
       'APT_REPO_BUCKET_NAME' => Ref(:RepoBucket),
       'CONTROL_DATA_CACHE_PREFIX' => Ref(:RepoCachePrefix),
     },
-    :role => FnGetAtt(:IAMRole, :Arn)
+    :role => FnGetAtt(:IAMRole, :Arn),
+    :runtime => 'python3.8'
   )
 
   Resource('InvocationPermission') {

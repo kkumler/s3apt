@@ -18,7 +18,7 @@ pip install -r requirements.txt
 zip="isengard-$version.zip"
 scratch="$ROOT/$zip"
 zip "$scratch" s3apt.py config.py
-( cd "$ROOT/lib/python2.7/site-packages" && exec zip -r "$scratch" * )
+( cd "$ROOT/lib/python3.8/site-packages" && exec zip -r "$scratch" * )
 mv -f -v "$scratch" "$zip"
 
 [ -n "$s3" ] && aws s3 cp "$zip" "s3://${s3#s3\://}"
